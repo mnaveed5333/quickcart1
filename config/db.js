@@ -6,23 +6,26 @@ if (!MONGODB_URI) {
   throw new Error("Please define MONGODB_URI in .env.local");
 }
 
-let cached = global.mongoose;
+// safer global cache for Vercel
+const globalWithMongoose = global;
 
-if (!cached) {
-  cached = global.mongoose = { conn: null, promise: null };
+if (!globalWithMongoose._mongoose) {
+  globalWithMongoose._mongoose = { conn: null, promise: null };
 }
 
 export async function connectDB() {
-  if (cached.conn) {
-    return cached.conn;
+  if (globalWithMongoose._mongoose.conn) {
+    return globalWithMongoose._mongoose.conn;
   }
 
-  if (!cached.promise) {
-    cached.promise = mongoose.connect(MONGODB_URI).then((mongoose) => {
-      return mongoose;
-    });
+  if (!globalWithMongoose._mongoose.promise) {
+    globalWithMongoose._mongoose.promise = mongoose
+      .connect(MONGODB_URI)
+      .then((mongoose) => mongoose);
   }
 
-  cached.conn = await cached.promise;
-  return cached.conn;
+  globalWithMongoose._mongoose.conn =
+    await globalWithMongoose._mongoose.promise;
+
+  return globalWithMongoose._mongoose.conn;
 }
